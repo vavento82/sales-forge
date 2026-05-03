@@ -18,7 +18,7 @@ import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
 type Step = 1 | 2 | 3;
-type RunState = "running" | "complete" | "error";
+type RunState = "running" | "report_ready" | "complete" | "error";
 
 const STATUS_MESSAGES = [
   "Scraping the website...",
@@ -76,14 +76,19 @@ export function GenerateFlow() {
         .eq("run_id", runId)
         .maybeSingle();
       if (!data) return;
-      // Treat both report_sent and tools_deployed as terminal "done" states.
-      // The current n8n flow stops at report_sent for the auto-trigger; the
-      // user picks 2 ideas on the report which kicks WF2 → tools_deployed.
-      if (data.status === "tools_deployed" || data.status === "report_sent") {
+      // The n8n flow has two terminal states for the auto-trigger:
+      //   report_sent     → 6-idea report deployed; user picks 2 on the
+      //                     report page which kicks WF2.
+      //   tools_deployed  → individual tool URLs are live.
+      if (data.status === "tools_deployed") {
         setReportUrl(
           data.tool_1_url || data.tool_2_url || data.report_url || null
         );
         setRunState("complete");
+        if (pollRef.current) clearInterval(pollRef.current);
+      } else if (data.status === "report_sent") {
+        setReportUrl(data.report_url || null);
+        setRunState("report_ready");
         if (pollRef.current) clearInterval(pollRef.current);
       } else if (data.status === "error") {
         setErrorMsg(data.error_message || null);
@@ -434,20 +439,47 @@ function Step3({
     );
   }
 
+  if (runState === "report_ready") {
+    return (
+      <div className="text-center py-10">
+        <AnimatedCheckmark />
+        <h2 className="mt-6 text-2xl font-semibold text-text-primary">
+          Your report is ready
+        </h2>
+        <p className="mt-2 text-[15px] text-text-secondary leading-[1.7] max-w-[420px] mx-auto">
+          We&apos;ve generated 6 micro-SaaS ideas tailored to this ICP. Open the report, pick 2 ideas, and we&apos;ll build them as live tools.
+        </p>
+        {reportUrl && (
+          <a href={reportUrl} target="_blank" rel="noopener noreferrer">
+            <Button className="mt-7 w-full max-w-[280px]">
+              Open report →
+            </Button>
+          </a>
+        )}
+        <Link
+          href={runId ? `/dashboard/run/${encodeURIComponent(runId)}` : "/dashboard"}
+          className="block mt-3 text-sm text-primary hover:text-primary-dark"
+        >
+          Or view this run on your dashboard →
+        </Link>
+      </div>
+    );
+  }
+
   if (runState === "complete") {
     return (
       <div className="text-center py-10">
         <AnimatedCheckmark />
         <h2 className="mt-6 text-2xl font-semibold text-text-primary">
-          Your tool is live!
+          Your tools are live!
         </h2>
         <p className="mt-2 text-[15px] text-text-secondary leading-[1.7] max-w-[380px] mx-auto">
-          Your micro-SaaS tool has been built and deployed. Share the link in your next cold email.
+          Both micro-SaaS tools have been built and deployed. Share the links in your next cold email.
         </p>
         <Link
           href={runId ? `/dashboard/run/${encodeURIComponent(runId)}` : "/dashboard"}
         >
-          <Button className="mt-7 w-full max-w-[280px]">View my tool →</Button>
+          <Button className="mt-7 w-full max-w-[280px]">View my tools →</Button>
         </Link>
         {reportUrl && (
           <a
@@ -456,7 +488,7 @@ function Step3({
             rel="noopener noreferrer"
             className="block mt-3 text-sm text-primary hover:text-primary-dark"
           >
-            Or open the live URL directly →
+            Or open a live URL directly →
           </a>
         )}
       </div>

@@ -3,9 +3,9 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// after() can keep tasks running past response — give it a 9-min budget for the
-// n8n pipeline to complete and update Supabase.
-export const maxDuration = 540;
+// Vercel Hobby caps function duration at 60s. n8n now responds in <1s
+// (responseMode: onReceived), so 60 is plenty for the after() forward.
+export const maxDuration = 60;
 
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL ?? "";
 

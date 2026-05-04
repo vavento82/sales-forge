@@ -6,8 +6,6 @@ import {
   Globe,
   BrainCircuit,
   XCircle,
-  FileText,
-  CheckCircle2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -16,6 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { ToolUrlBlock } from "@/components/run/ToolUrlBlock";
+import { IdeaPicker, type Idea } from "@/components/generate/IdeaPicker";
 
 interface IcpJson {
   company_name?: string;
@@ -85,7 +84,6 @@ function formatDate(iso: string | null) {
 const STATUS_TO_MESSAGE: Record<string, string> = {
   queued: "Queued for processing...",
   scraping: "Scraping the website...",
-  report_sent: "Generating ideas...",
   building: "Building your tool...",
 };
 
@@ -135,9 +133,10 @@ export default async function RunDetailPage({
   const domain = parseDomain(r.website_url);
   const company = r.icp_json?.company_name || r.company_name || domain || r.run_id;
   const isDeployed = r.status === "tools_deployed";
-  const isReportReady = r.status === "report_sent";
+  const isIdeasReady = r.status === "ideas_ready" || r.status === "report_sent";
   const isPending =
-    !isDeployed && !isReportReady && r.status !== "error";
+    !isDeployed && !isIdeasReady && r.status !== "error";
+  const ideas = (Array.isArray(r.ideas_json) ? (r.ideas_json as Idea[]) : []) ?? [];
 
   const tool1Name = r.tool_1_name || "Tool 1";
   const tool2Name = r.tool_2_name || "Tool 2";
@@ -308,37 +307,9 @@ export default async function RunDetailPage({
             </div>
           )}
 
-          {isReportReady && r.report_url && (
-            <div className="bg-bg border-2 border-primary rounded-xl p-7">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 size={24} className="text-primary mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold text-text-primary">
-                    Your report is ready
-                  </h2>
-                  <p className="mt-1 text-[14px] text-text-secondary leading-relaxed">
-                    We&apos;ve generated 6 micro-SaaS ideas tailored to {company}&apos;s ICP. Open the report, pick 2 ideas, and we&apos;ll build them as live tools.
-                  </p>
-                  <div className="mt-4 bg-surface border border-border rounded-md px-4 py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText size={14} className="text-text-secondary shrink-0" />
-                      <span className="text-[13px] font-mono truncate">
-                        {r.report_url}
-                      </span>
-                    </div>
-                    <a
-                      href={r.report_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0"
-                    >
-                      <Button size="sm">
-                        Open report <ExternalLink size={12} />
-                      </Button>
-                    </a>
-                  </div>
-                </div>
-              </div>
+          {isIdeasReady && (
+            <div className="bg-bg border border-border rounded-xl p-6 sm:p-7">
+              <IdeaPicker runId={r.run_id} ideas={ideas} />
             </div>
           )}
 

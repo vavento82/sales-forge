@@ -16,17 +16,27 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+import { IdeaPicker, type Idea } from "@/components/generate/IdeaPicker";
 
 type Step = 1 | 2 | 3;
-type RunState = "running" | "report_ready" | "complete" | "error";
+type RunState =
+  | "running_ideas"
+  | "ideas_ready"
+  | "building"
+  | "complete"
+  | "error";
 
-const STATUS_MESSAGES = [
+const IDEAS_STATUS_MESSAGES = [
   "Scraping the website...",
   "Running Google research...",
   "Building your ICP profile...",
-  "Generating tool ideas...",
+  "Generating 6 tool ideas...",
+];
+
+const BUILD_STATUS_MESSAGES = [
   "Building the interactive tool...",
-  "Deploying to live URL...",
+  "Generating the HTML and lead-capture flow...",
+  "Deploying to a live URL...",
 ];
 
 function isValidUrl(url: string) {
@@ -45,61 +55,64 @@ export function GenerateFlow() {
   const [urlError, setUrlError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [runId, setRunId] = useState<string | null>(null);
-  const [runState, setRunState] = useState<RunState>("running");
+  const [runState, setRunState] = useState<RunState>("running_ideas");
   const [statusIdx, setStatusIdx] = useState(0);
-  const [reportUrl, setReportUrl] = useState<string | null>(null);
+  const [ideas, setIdeas] = useState<Idea[] | null>(null);
+  const [toolUrl, setToolUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const isPolling = runState === "running_ideas" || runState === "building";
+  const cycleMessages =
+    runState === "building" ? BUILD_STATUS_MESSAGES : IDEAS_STATUS_MESSAGES;
+
   // Status-message cycling on step 3 while pipeline runs
   useEffect(() => {
-    if (step !== 3 || runState !== "running") return;
+    if (step !== 3 || !isPolling) return;
+    setStatusIdx(0);
     cycleRef.current = setInterval(() => {
-      setStatusIdx((i) => (i + 1) % STATUS_MESSAGES.length);
+      setStatusIdx((i) => (i + 1) % cycleMessages.length);
     }, 2500);
     return () => {
       if (cycleRef.current) clearInterval(cycleRef.current);
     };
-  }, [step, runState]);
+  }, [step, isPolling, cycleMessages.length]);
 
   // Poll Supabase for run status changes
   useEffect(() => {
-    if (step !== 3 || !runId || runState !== "running") return;
+    if (step !== 3 || !runId || !isPolling) return;
     const supabase = createClient();
     pollRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("runs")
         .select(
-          "status, error_message, report_url, tool_1_url, tool_2_url"
+          "status, error_message, ideas_json, tool_1_url, tool_2_url, report_url"
         )
         .eq("run_id", runId)
         .maybeSingle();
       if (!data) return;
-      // The n8n flow has two terminal states for the auto-trigger:
-      //   report_sent     → 6-idea report deployed; user picks 2 on the
-      //                     report page which kicks WF2.
-      //   tools_deployed  → individual tool URLs are live.
       if (data.status === "tools_deployed") {
-        setReportUrl(
-          data.tool_1_url || data.tool_2_url || data.report_url || null
-        );
+        setToolUrl(data.tool_1_url || data.tool_2_url || null);
         setRunState("complete");
         if (pollRef.current) clearInterval(pollRef.current);
-      } else if (data.status === "report_sent") {
-        setReportUrl(data.report_url || null);
-        setRunState("report_ready");
+      } else if (
+        runState === "running_ideas" &&
+        (data.status === "ideas_ready" || data.status === "report_sent")
+      ) {
+        setIdeas((data.ideas_json as Idea[] | null) ?? []);
+        setRunState("ideas_ready");
         if (pollRef.current) clearInterval(pollRef.current);
       } else if (data.status === "error") {
         setErrorMsg(data.error_message || null);
         setRunState("error");
         if (pollRef.current) clearInterval(pollRef.current);
       }
-    }, 10000);
+    }, 6000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [step, runId, runState]);
+  }, [step, runId, runState, isPolling]);
 
   function handleNext() {
     if (!isValidUrl(url.trim())) {
@@ -134,7 +147,6 @@ export function GenerateFlow() {
             "You've used your free generation. Upgrade to a paid plan to generate more."
         );
         setSubmitting(false);
-        // Soft redirect to pricing page so they see the options
         setTimeout(() => {
           window.location.href = "/pricing";
         }, 1500);
@@ -146,7 +158,7 @@ export function GenerateFlow() {
         return;
       }
       setRunId(payload.run_id);
-      setRunState("running");
+      setRunState("running_ideas");
       setStatusIdx(0);
       setStep(3);
     } catch {
@@ -191,13 +203,19 @@ export function GenerateFlow() {
         <Step3
           runId={runId}
           runState={runState}
-          statusMessage={STATUS_MESSAGES[statusIdx]}
-          reportUrl={reportUrl}
+          statusMessage={cycleMessages[statusIdx]}
+          ideas={ideas}
+          toolUrl={toolUrl}
           errorMsg={errorMsg}
+          onBuildStarted={() => {
+            setRunState("building");
+            setStatusIdx(0);
+          }}
           onRetry={() => {
             setRunId(null);
-            setRunState("running");
-            setReportUrl(null);
+            setRunState("running_ideas");
+            setIdeas(null);
+            setToolUrl(null);
             setErrorMsg(null);
             setStep(1);
           }}
@@ -261,10 +279,10 @@ function Step1({
   return (
     <div>
       <h1 className="text-[28px] font-semibold text-text-primary mb-2">
-        Generate micro-SaaS tools
+        Generate a micro-SaaS tool
       </h1>
       <p className="text-base text-text-secondary leading-relaxed mb-8">
-        Enter the website to analyse. We&apos;ll scrape it, research the market, and build a custom tool for their ICP.
+        Enter the website to analyse. We&apos;ll scrape it, research the market, then give you 6 ideas to choose from.
       </p>
 
       <div className="bg-bg border border-border rounded-xl p-5">
@@ -282,7 +300,7 @@ function Step1({
           error={urlError}
         />
         <p className="mt-1.5 text-[13px] text-text-secondary">
-          Enter the URL of the company you want to generate tools for.
+          Enter the URL of the company you want to generate a tool for.
         </p>
 
         <div className="mt-7">
@@ -353,8 +371,8 @@ function Step2({
             </button>
           </div>
         </SummaryRow>
-        <SummaryRow label="Tools to generate" border>
-          <span className="text-sm font-semibold text-text-primary">1 tool</span>
+        <SummaryRow label="Ideas to generate" border>
+          <span className="text-sm font-semibold text-text-primary">6 ideas → pick 1</span>
         </SummaryRow>
         <SummaryRow label="Cost" border>
           <span className="text-sm font-semibold text-primary">Free</span>
@@ -367,7 +385,7 @@ function Step2({
       <div className="mt-5 flex items-start gap-2.5 bg-primary-light rounded-md px-4 py-3.5">
         <Lightbulb size={18} className="text-primary mt-0.5 shrink-0" />
         <p className="text-sm text-primary-dark leading-relaxed">
-          We&apos;ll scrape the website, run Google research, generate an ICP profile, and build 1 custom interactive tool — then email you when it&apos;s live.
+          We&apos;ll scrape the website, run Google research, generate an ICP profile, and propose 6 micro-SaaS ideas. You pick one and we build it as a live URL.
         </p>
       </div>
 
@@ -412,23 +430,27 @@ function Step3({
   runId,
   runState,
   statusMessage,
-  reportUrl,
+  ideas,
+  toolUrl,
   errorMsg,
+  onBuildStarted,
   onRetry,
 }: {
   runId: string | null;
   runState: RunState;
   statusMessage: string | undefined;
-  reportUrl: string | null;
+  ideas: Idea[] | null;
+  toolUrl: string | null;
   errorMsg: string | null;
+  onBuildStarted: () => void;
   onRetry: () => void;
 }) {
-  if (runState === "running") {
+  if (runState === "running_ideas") {
     return (
       <div className="text-center py-10">
         <Spinner size="lg" className="mx-auto" />
         <h2 className="mt-6 text-xl font-medium text-text-primary">
-          Analysing and building...
+          Analysing the website...
         </h2>
         <p
           key={statusMessage}
@@ -437,10 +459,10 @@ function Step3({
           {statusMessage}
         </p>
         <p className="mt-4 text-[13px] text-text-secondary">
-          This takes 3–5 minutes.
+          We&apos;ll have 6 ideas in 2–3 minutes.
         </p>
         <p className="mt-2 text-[13px] text-text-secondary">
-          You can close this page — we&apos;ll email you when ready.
+          You can leave this page open — it&apos;ll update automatically.
         </p>
         <Link
           href="/dashboard"
@@ -452,28 +474,38 @@ function Step3({
     );
   }
 
-  if (runState === "report_ready") {
+  if (runState === "ideas_ready" && runId) {
+    return (
+      <IdeaPicker
+        runId={runId}
+        ideas={ideas ?? []}
+        redirectOnBuild={false}
+        onBuildStarted={onBuildStarted}
+      />
+    );
+  }
+
+  if (runState === "building") {
     return (
       <div className="text-center py-10">
-        <AnimatedCheckmark />
-        <h2 className="mt-6 text-2xl font-semibold text-text-primary">
-          Your report is ready
+        <Spinner size="lg" className="mx-auto" />
+        <h2 className="mt-6 text-xl font-medium text-text-primary">
+          Building your tool...
         </h2>
-        <p className="mt-2 text-[15px] text-text-secondary leading-[1.7] max-w-[420px] mx-auto">
-          We&apos;ve generated 6 micro-SaaS ideas tailored to this ICP. Open the report, pick 2 ideas, and we&apos;ll build them as live tools.
+        <p
+          key={statusMessage}
+          className="mt-2 text-[15px] text-text-secondary [animation:sf-fade-in_300ms_ease]"
+        >
+          {statusMessage}
         </p>
-        {reportUrl && (
-          <a href={reportUrl} target="_blank" rel="noopener noreferrer">
-            <Button className="mt-7 w-full max-w-[280px]">
-              Open report →
-            </Button>
-          </a>
-        )}
+        <p className="mt-4 text-[13px] text-text-secondary">
+          This takes about 2 minutes.
+        </p>
         <Link
           href={runId ? `/dashboard/run/${encodeURIComponent(runId)}` : "/dashboard"}
-          className="block mt-3 text-sm text-primary hover:text-primary-dark"
+          className="inline-block mt-5 text-sm text-primary hover:text-primary-dark font-medium"
         >
-          Or view this run on your dashboard →
+          View on dashboard →
         </Link>
       </div>
     );
@@ -484,26 +516,24 @@ function Step3({
       <div className="text-center py-10">
         <AnimatedCheckmark />
         <h2 className="mt-6 text-2xl font-semibold text-text-primary">
-          Your tools are live!
+          Your tool is live!
         </h2>
         <p className="mt-2 text-[15px] text-text-secondary leading-[1.7] max-w-[380px] mx-auto">
-          Both micro-SaaS tools have been built and deployed. Share the links in your next cold email.
+          Your custom micro-SaaS tool has been built and deployed. Share the link in your next cold email.
         </p>
-        <Link
-          href={runId ? `/dashboard/run/${encodeURIComponent(runId)}` : "/dashboard"}
-        >
-          <Button className="mt-7 w-full max-w-[280px]">View my tools →</Button>
-        </Link>
-        {reportUrl && (
-          <a
-            href={reportUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block mt-3 text-sm text-primary hover:text-primary-dark"
-          >
-            Or open a live URL directly →
+        {toolUrl && (
+          <a href={toolUrl} target="_blank" rel="noopener noreferrer">
+            <Button className="mt-7 w-full max-w-[280px]">
+              Open your tool →
+            </Button>
           </a>
         )}
+        <Link
+          href={runId ? `/dashboard/run/${encodeURIComponent(runId)}` : "/dashboard"}
+          className="block mt-3 text-sm text-primary hover:text-primary-dark"
+        >
+          Or view this run on your dashboard →
+        </Link>
       </div>
     );
   }

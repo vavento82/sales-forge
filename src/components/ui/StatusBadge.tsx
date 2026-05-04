@@ -15,6 +15,7 @@ const map: Record<
 > = {
   queued: { label: "Queued", color: "grey" },
   scraping: { label: "Analysing", color: "amber", pulse: true },
+  ideas_ready: { label: "Ideas ready", color: "blue" },
   report_sent: { label: "Report sent", color: "blue" },
   building: { label: "Building", color: "amber", pulse: true },
   tools_deployed: { label: "Live", color: "green" },

@@ -166,9 +166,6 @@ export default async function RunDetailPage({
                   width={32}
                   height={32}
                   className="rounded-md shrink-0"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
                 />
               ) : (
                 <Globe size={28} className="text-text-secondary shrink-0" />

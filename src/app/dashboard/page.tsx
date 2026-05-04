@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RunCard, type RunRow } from "@/components/dashboard/RunCard";
+import { countFreeRunsUsed, FREE_PLAN_RUN_LIMIT } from "@/lib/quota";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -59,6 +60,9 @@ export default async function DashboardPage() {
     .trim()
     .split(/\s+/)[0];
 
+  const freeRunsUsed = await countFreeRunsUsed(supabase, user.id);
+  const atLimit = freeRunsUsed >= FREE_PLAN_RUN_LIMIT;
+
   return (
     <DashboardShell user={user}>
       <div className="p-6 sm:p-10 max-w-[1000px] mx-auto">
@@ -73,11 +77,19 @@ export default async function DashboardPage() {
               </p>
             )}
           </div>
-          <Link href="/generate">
-            <Button size="sm">
-              <Plus size={16} /> New generation
-            </Button>
-          </Link>
+          {atLimit ? (
+            <Link href="/pricing">
+              <Button size="sm" variant="outline">
+                Upgrade for more →
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/generate">
+              <Button size="sm">
+                <Plus size={16} /> New generation
+              </Button>
+            </Link>
+          )}
         </header>
 
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

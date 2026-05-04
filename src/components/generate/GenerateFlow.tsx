@@ -126,7 +126,20 @@ export function GenerateFlow() {
         success?: boolean;
         run_id?: string;
         error?: string;
+        upgrade_required?: boolean;
       };
+      if (res.status === 402 || payload.upgrade_required) {
+        toast.error(
+          payload.error ||
+            "You've used your free generation. Upgrade to a paid plan to generate more."
+        );
+        setSubmitting(false);
+        // Soft redirect to pricing page so they see the options
+        setTimeout(() => {
+          window.location.href = "/pricing";
+        }, 1500);
+        return;
+      }
       if (!res.ok || !payload.run_id) {
         toast.error(payload.error || "Pipeline failed. Please try again.");
         setSubmitting(false);

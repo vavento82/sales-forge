@@ -1,5 +1,6 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { countFreeRunsUsed, FREE_PLAN_RUN_LIMIT } from "@/lib/quota";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,6 +45,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  // Enforce free-plan quota — block before any DB write or pipeline fire.
+  // Only counts runs where is_free=true and status!='error', so failed
+  // generations don't count against the cap.
+  const plan = body.plan ?? "free";
+  if (plan === "free") {
+    const used = await countFreeRunsUsed(supabase, user.id);
+    if (used >= FREE_PLAN_RUN_LIMIT) {
+      return NextResponse.json(
+        {
+          error:
+            "You've used your free generation. Paid plans are coming soon — sign up for early access.",
+          upgrade_required: true,
+          used,
+          limit: FREE_PLAN_RUN_LIMIT,
+        },
+        { status: 402 }
+      );
+    }
+  }
+
   const websiteUrl = (body.website_url || "").trim();
   if (!websiteUrl || !/^https?:\/\/.+\..+/.test(websiteUrl)) {
     return NextResponse.json(
@@ -53,7 +74,6 @@ export async function POST(request: NextRequest) {
   }
 
   const toolsCount = Math.max(1, Math.min(8, body.tools_count ?? 1));
-  const plan = body.plan ?? "free";
   const submittedAt = new Date().toISOString();
 
   // If client supplied a run_id, verify they own it. Otherwise insert a fresh row.

@@ -73,9 +73,10 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
 
     setLoading(true);
     const supabase = createClient();
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "");
+    // Always derive from the live origin: NEXT_PUBLIC_APP_URL was previously
+    // taking precedence and could be wrong-ish-set on Vercel (e.g. localhost
+    // leaking into prod), which made confirmation emails point nowhere.
+    const appUrl = window.location.origin;
     const next = redirectTo || "/dashboard";
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -108,8 +109,7 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
   async function handleGoogle() {
     setOauthLoading(true);
     const supabase = createClient();
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const appUrl = window.location.origin;
     const next = redirectTo || "/dashboard";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

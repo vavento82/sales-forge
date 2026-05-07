@@ -62,8 +62,7 @@ export function LoginForm({
   async function handleGoogle() {
     setOauthLoading(true);
     const supabase = createClient();
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const appUrl = window.location.origin;
     const next = redirectTo || "/dashboard";
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -84,8 +83,7 @@ export function LoginForm({
     }
     setResetting(true);
     const supabase = createClient();
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const appUrl = window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${appUrl}/auth/callback`,
     });

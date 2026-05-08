@@ -160,10 +160,10 @@ export default function PricingPage() {
           <p className="text-sm text-text-secondary">
             Questions about volume pricing or a custom plan?{" "}
             <a
-              href="mailto:hello@saasforge.app"
+              href="mailto:hello@sassyforge.app"
               className="text-primary hover:text-primary-dark font-medium"
             >
-              hello@saasforge.app
+              hello@sassyforge.app
             </a>
           </p>
         </div>

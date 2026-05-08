@@ -1,5 +1,5 @@
 {
-  "name": "saasforge",
+  "name": "sassyforge",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,6 +16,7 @@
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "retune": "^0.7.6",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {

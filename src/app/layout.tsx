@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SaaSForge — Turn any website into a micro-SaaS lead magnet",
+  title: "SassyForge — Turn any website into a micro-SaaS lead magnet",
   description:
     "Paste a company URL. We analyse their ICP, generate custom interactive tools, and deploy them live — ready to send to prospects in minutes.",
 };

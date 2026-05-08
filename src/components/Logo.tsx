@@ -7,7 +7,7 @@ export function Logo({ size = 24 }: { size?: number }) {
     <Link
       href="/"
       className="inline-flex items-center gap-2.5 group"
-      aria-label="SaaSForge home"
+      aria-label="SassyForge home"
     >
       <span
         style={{ width: size, height: size }}
@@ -33,7 +33,7 @@ export function Logo({ size = 24 }: { size?: number }) {
           ))}
         </span>
       </span>
-      <span className="text-[18px] font-semibold text-primary">SaaSForge</span>
+      <span className="text-[18px] font-semibold text-primary">SassyForge</span>
     </Link>
   );
 }

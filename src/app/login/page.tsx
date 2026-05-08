@@ -27,7 +27,7 @@ export default async function LoginPage({
             Welcome back
           </h1>
           <p className="text-sm text-text-secondary text-center mt-1.5">
-            Sign in to your SaaSForge account
+            Sign in to your SassyForge account
           </p>
           <div className="mt-6">
             <LoginForm initialError={sp.error} redirectTo={sp.redirect} />

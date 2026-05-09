@@ -468,7 +468,7 @@ function BetaFullScreen() {
         Beta is full
       </h2>
       <p className="mt-2 text-[15px] text-text-secondary leading-[1.7] max-w-[340px]">
-        We&apos;ve hit our 15-user cap for the SassyForge beta. Drop us a line at{" "}
+        We&apos;ve hit our 25-user cap for the SassyForge beta. Drop us a line at{" "}
         <a
           href="mailto:hello@sassyforge.app"
           className="text-primary hover:text-primary-dark font-medium"

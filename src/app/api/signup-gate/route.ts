@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const CAP = 15;
+const CAP = 25;
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

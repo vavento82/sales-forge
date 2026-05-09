@@ -52,8 +52,26 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [confirmedFor, setConfirmedFor] = useState<string | null>(null);
+  const [betaFull, setBetaFull] = useState(false);
 
   const score = passwordScore(password);
+
+  async function checkGate(): Promise<boolean> {
+    try {
+      const r = await fetch("/api/signup-gate", { cache: "no-store" });
+      const j = (await r.json().catch(() => ({}))) as { open?: boolean };
+      if (!j.open) {
+        setBetaFull(true);
+        return false;
+      }
+      return true;
+    } catch {
+      // If the gate is unreachable, fail closed — don't accidentally let
+      // signups through when the cap can't be enforced.
+      setBetaFull(true);
+      return false;
+    }
+  }
 
   function validate(): FieldErrors {
     const e: FieldErrors = {};
@@ -72,6 +90,10 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
     if (Object.keys(v).length > 0) return;
 
     setLoading(true);
+    if (!(await checkGate())) {
+      setLoading(false);
+      return;
+    }
     const supabase = createClient();
     // Always derive from the live origin: NEXT_PUBLIC_APP_URL was previously
     // taking precedence and could be wrong-ish-set on Vercel (e.g. localhost
@@ -108,6 +130,10 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
 
   async function handleGoogle() {
     setOauthLoading(true);
+    if (!(await checkGate())) {
+      setOauthLoading(false);
+      return;
+    }
     const supabase = createClient();
     const appUrl = window.location.origin;
     const next = redirectTo || "/dashboard";
@@ -121,6 +147,10 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
       toast.error(error.message);
       setOauthLoading(false);
     }
+  }
+
+  if (betaFull) {
+    return <BetaFullScreen />;
   }
 
   if (confirmedFor) {
@@ -425,5 +455,34 @@ function EnvelopeMark() {
         @keyframes sf-draw-envelope { to { stroke-dashoffset: 0 } }
       `}</style>
     </svg>
+  );
+}
+
+function BetaFullScreen() {
+  return (
+    <div className="flex flex-col items-center text-center [animation:sf-fade-in_280ms_ease]">
+      <div className="h-16 w-16 rounded-full bg-primary-light grid place-content-center">
+        <span className="text-2xl">🚦</span>
+      </div>
+      <h2 className="mt-5 text-[22px] font-semibold text-text-primary">
+        Beta is full
+      </h2>
+      <p className="mt-2 text-[15px] text-text-secondary leading-[1.7] max-w-[340px]">
+        We&apos;ve hit our 15-user cap for the SassyForge beta. Drop us a line at{" "}
+        <a
+          href="mailto:hello@sassyforge.app"
+          className="text-primary hover:text-primary-dark font-medium"
+        >
+          hello@sassyforge.app
+        </a>{" "}
+        and we&apos;ll add you to the next wave.
+      </p>
+      <a
+        href="/"
+        className="mt-5 text-sm text-primary hover:text-primary-dark font-medium"
+      >
+        ← Back to home
+      </a>
+    </div>
   );
 }

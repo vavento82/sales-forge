@@ -50,7 +50,6 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
   const [terms, setTerms] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(false);
   const [confirmedFor, setConfirmedFor] = useState<string | null>(null);
   const [betaFull, setBetaFull] = useState(false);
 
@@ -128,27 +127,6 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
     setLoading(false);
   }
 
-  async function handleGoogle() {
-    setOauthLoading(true);
-    if (!(await checkGate())) {
-      setOauthLoading(false);
-      return;
-    }
-    const supabase = createClient();
-    const appUrl = window.location.origin;
-    const next = redirectTo || "/dashboard";
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    if (error) {
-      toast.error(error.message);
-      setOauthLoading(false);
-    }
-  }
-
   if (betaFull) {
     return <BetaFullScreen />;
   }
@@ -164,25 +142,6 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <Button
-        type="button"
-        variant="outline"
-        loading={oauthLoading}
-        onClick={handleGoogle}
-        className="w-full"
-      >
-        Continue with Google
-      </Button>
-
-      <div className="relative my-1">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-bg px-3 text-[13px] text-text-secondary">or</span>
-        </div>
-      </div>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* NAME */}
         <Field label="Full name" htmlFor="signup-name" error={errors.name}>

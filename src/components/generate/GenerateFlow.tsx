@@ -54,6 +54,13 @@ export function GenerateFlow() {
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [buyerTitle, setBuyerTitle] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [competitors, setCompetitors] = useState("");
+  const [questionErrors, setQuestionErrors] = useState<{
+    buyer_title?: string;
+    company_description?: string;
+  }>({});
   const [runId, setRunId] = useState<string | null>(null);
   const [runState, setRunState] = useState<RunState>("running_ideas");
   const [statusIdx, setStatusIdx] = useState(0);
@@ -124,6 +131,17 @@ export function GenerateFlow() {
   }
 
   async function handleGenerate() {
+    // Validate the 3 questions before firing
+    const errs: typeof questionErrors = {};
+    if (!buyerTitle.trim() || buyerTitle.trim().length < 3) {
+      errs.buyer_title = "Tell us who your ideal customer is";
+    }
+    if (!companyDescription.trim() || companyDescription.trim().length < 5) {
+      errs.company_description = "Tell us what you help them with";
+    }
+    setQuestionErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setSubmitting(true);
     try {
       const res = await fetch("/api/generate", {
@@ -133,6 +151,9 @@ export function GenerateFlow() {
           website_url: url.trim(),
           tools_count: 1,
           plan: "free",
+          buyer_title: buyerTitle.trim(),
+          company_description: companyDescription.trim(),
+          competitors: competitors.trim(),
         }),
       });
       const payload = (await res.json().catch(() => ({}))) as {
@@ -194,6 +215,24 @@ export function GenerateFlow() {
         <Step2
           url={url}
           submitting={submitting}
+          buyerTitle={buyerTitle}
+          companyDescription={companyDescription}
+          competitors={competitors}
+          questionErrors={questionErrors}
+          setBuyerTitle={(v) => {
+            setBuyerTitle(v);
+            if (questionErrors.buyer_title)
+              setQuestionErrors({ ...questionErrors, buyer_title: undefined });
+          }}
+          setCompanyDescription={(v) => {
+            setCompanyDescription(v);
+            if (questionErrors.company_description)
+              setQuestionErrors({
+                ...questionErrors,
+                company_description: undefined,
+              });
+          }}
+          setCompetitors={setCompetitors}
           onBack={() => setStep(1)}
           onEditUrl={() => setStep(1)}
           onGenerate={handleGenerate}
@@ -340,23 +379,66 @@ function Step1({
 function Step2({
   url,
   submitting,
+  buyerTitle,
+  companyDescription,
+  competitors,
+  questionErrors,
+  setBuyerTitle,
+  setCompanyDescription,
+  setCompetitors,
   onBack,
   onEditUrl,
   onGenerate,
 }: {
   url: string;
   submitting: boolean;
+  buyerTitle: string;
+  companyDescription: string;
+  competitors: string;
+  questionErrors: { buyer_title?: string; company_description?: string };
+  setBuyerTitle: (v: string) => void;
+  setCompanyDescription: (v: string) => void;
+  setCompetitors: (v: string) => void;
   onBack: () => void;
   onEditUrl: () => void;
   onGenerate: () => void;
 }) {
   return (
     <div>
-      <h1 className="text-[24px] font-semibold text-text-primary mb-6">
-        Ready to generate
+      <h1 className="text-[24px] font-semibold text-text-primary mb-1">
+        While we analyse your website
       </h1>
+      <p className="text-sm text-text-secondary mb-6">
+        3 quick questions (60 seconds) — these help us generate accurate ideas
+        even if your site blocks scrapers.
+      </p>
 
-      <div className="bg-bg border border-border rounded-xl px-5">
+      <div className="bg-bg border border-border rounded-xl p-5 flex flex-col gap-5">
+        <Input
+          label="Who is your ideal customer?"
+          required
+          placeholder="e.g. HR directors at mid-market companies"
+          value={buyerTitle}
+          onChange={(e) => setBuyerTitle(e.target.value)}
+          error={questionErrors.buyer_title}
+        />
+        <Input
+          label="What's the main thing you help them with?"
+          required
+          placeholder="e.g. We help them reduce staff turnover"
+          value={companyDescription}
+          onChange={(e) => setCompanyDescription(e.target.value)}
+          error={questionErrors.company_description}
+        />
+        <Input
+          label="Who are your closest competitors?"
+          placeholder="e.g. Competitor A, Competitor B (optional)"
+          value={competitors}
+          onChange={(e) => setCompetitors(e.target.value)}
+        />
+      </div>
+
+      <div className="mt-5 bg-bg border border-border rounded-xl px-5">
         <SummaryRow label="Website">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-text-primary truncate max-w-[220px]">

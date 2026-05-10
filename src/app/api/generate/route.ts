@@ -14,6 +14,11 @@ interface GenerateBody {
   website_url?: string;
   tools_count?: number;
   plan?: "free" | "starter" | "pro";
+  // 3 questions collected on /generate step 2 — used as Serper query
+  // fallbacks and ICP grounding when the website scrape fails.
+  buyer_title?: string;
+  company_description?: string;
+  competitors?: string;
   // tool_preferences kept optional for backwards compatibility with the
   // legacy form-direct flow; the app no longer sends it.
   tool_preferences?: string[];
@@ -148,13 +153,13 @@ export async function POST(request: NextRequest) {
     run_id: runId,
     submitted_at: submittedAt,
     website_url: websiteUrl,
-    company_description: "",
-    buyer_title: "",
+    company_description: (body.company_description || "").trim(),
+    buyer_title: (body.buyer_title || "").trim(),
     company_size: "",
     deal_size: "",
     core_problem: "",
     sales_objections: "",
-    competitors: "",
+    competitors: (body.competitors || "").trim(),
     tool_preferences: body.tool_preferences ?? [],
     tools_count_requested: toolsCount,
     plan,

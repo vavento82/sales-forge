@@ -259,6 +259,7 @@ export function GenerateFlow() {
           ideas={ideas}
           toolUrl={toolUrl}
           errorMsg={errorMsg}
+          defaultCtaUrl={url}
           onBuildStarted={() => {
             setRunState("building");
             setStatusIdx(0);
@@ -530,6 +531,7 @@ function Step3({
   ideas,
   toolUrl,
   errorMsg,
+  defaultCtaUrl,
   onBuildStarted,
   onRetry,
 }: {
@@ -539,6 +541,7 @@ function Step3({
   ideas: Idea[] | null;
   toolUrl: string | null;
   errorMsg: string | null;
+  defaultCtaUrl: string;
   onBuildStarted: () => void;
   onRetry: () => void;
 }) {
@@ -576,6 +579,7 @@ function Step3({
       <IdeaPicker
         runId={runId}
         ideas={ideas ?? []}
+        defaultCtaUrl={defaultCtaUrl}
         redirectOnBuild={false}
         onBuildStarted={onBuildStarted}
       />

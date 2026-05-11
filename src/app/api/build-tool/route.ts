@@ -14,6 +14,9 @@ const N8N_BUILD_WEBHOOK_URL =
 interface BuildBody {
   run_id?: string;
   selected_idea_id?: number;
+  /** Optional CTA override — if set, the deployed tool's "go to website" button
+   *  links here instead of the run's website_url. */
+  cta_url?: string;
 }
 
 interface Idea {
@@ -101,11 +104,18 @@ export async function POST(request: NextRequest) {
     .eq("run_id", runId)
     .eq("user_id", user.id);
 
+  // Normalise the optional CTA override (scheme-less domain → https://).
+  let ctaUrl = (body.cta_url || "").trim();
+  if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
+    ctaUrl = "https://" + ctaUrl.replace(/^\/+/, "");
+  }
+
   const fwdBody = JSON.stringify({
     run_id: runId,
     user_email: r.user_email ?? user.email ?? "",
     selected_idea_1: idea,
     icp: r.icp_json,
+    cta_url: ctaUrl || undefined,
     user_id: user.id,
     source: "saasforge-app",
   });

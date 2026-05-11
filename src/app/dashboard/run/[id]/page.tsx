@@ -309,7 +309,11 @@ export default async function RunDetailPage({
 
           {isIdeasReady && (
             <div className="bg-bg border border-border rounded-xl p-6 sm:p-7">
-              <IdeaPicker runId={r.run_id} ideas={ideas} />
+              <IdeaPicker
+                runId={r.run_id}
+                ideas={ideas}
+                defaultCtaUrl={r.website_url || ""}
+              />
             </div>
           )}
 

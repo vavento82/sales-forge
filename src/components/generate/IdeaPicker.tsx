@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,9 @@ const TYPE_LABEL: Record<string, string> = {
 export function IdeaPicker({
   runId,
   ideas,
+  /** Pre-filled CTA — the website URL the user entered at the start.
+   *  They can edit it before building if they want a different destination. */
+  defaultCtaUrl = "",
   /** When true, after building we navigate to /dashboard/run/[id] (with polling
    *  there). When false, the parent (/generate flow) handles the transition. */
   redirectOnBuild = true,
@@ -44,22 +48,48 @@ export function IdeaPicker({
 }: {
   runId: string;
   ideas: Idea[];
+  defaultCtaUrl?: string;
   redirectOnBuild?: boolean;
   onBuildStarted?: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [ctaUrl, setCtaUrl] = useState(defaultCtaUrl);
+  const [ctaError, setCtaError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  function normalizeCta(raw: string): string {
+    const s = raw.trim();
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s)) return s;
+    return "https://" + s.replace(/^\/+/, "");
+  }
 
   async function handleBuild() {
     if (selectedId == null) return;
+    let cta = ctaUrl.trim();
+    if (cta) {
+      cta = normalizeCta(cta);
+      try {
+        const u = new URL(cta);
+        if (u.protocol !== "https:" && u.protocol !== "http:") throw new Error("scheme");
+      } catch {
+        setCtaError("Enter a valid URL (e.g. example.com/contact)");
+        return;
+      }
+    }
+    setCtaError(null);
     setSubmitting(true);
     try {
       const res = await fetch("/api/build-tool", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ run_id: runId, selected_idea_id: selectedId }),
+        body: JSON.stringify({
+          run_id: runId,
+          selected_idea_id: selectedId,
+          cta_url: cta || undefined,
+        }),
       });
       const payload = (await res.json().catch(() => ({}))) as {
         success?: boolean;
@@ -165,7 +195,26 @@ export function IdeaPicker({
         })}
       </div>
 
-      <div className="sticky bottom-0 -mx-1 mt-7 bg-bg/95 backdrop-blur-sm py-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-7 bg-bg border border-border rounded-xl p-5">
+        <Input
+          label="Where should the result CTA link to?"
+          type="text"
+          inputMode="url"
+          placeholder={defaultCtaUrl || "example.com/contact"}
+          value={ctaUrl}
+          onChange={(e) => {
+            setCtaUrl(e.target.value);
+            if (ctaError) setCtaError(null);
+          }}
+          error={ctaError}
+        />
+        <p className="mt-1.5 text-[13px] text-text-secondary">
+          The button at the end of the tool sends visitors here. Defaults to the
+          website you entered — change it to a booking link, contact page, etc.
+        </p>
+      </div>
+
+      <div className="sticky bottom-0 -mx-1 mt-5 bg-bg/95 backdrop-blur-sm py-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
         <p className="text-[13px] text-text-secondary">
           {selectedId != null
             ? `Idea ${selectedId} selected`

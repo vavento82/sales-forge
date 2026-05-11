@@ -122,14 +122,37 @@ export default async function RunDetailPage({
   if (!run) notFound();
   const r = run as unknown as RunDetail;
 
+  // Pull the lead count exactly (cheap) AND the visible leads. Free-tier
+  // accounts only see the most-recent 5 in the table; full count is still
+  // shown in the badge + an upgrade nudge tells them how many are hidden.
+  const FREE_LEAD_VISIBLE_LIMIT = 5;
+  const isFreePlan = r.is_free !== false;
   const { data: leads } = await supabase
     .from("leads")
-    .select("id, email, name, company, score, tool_name, captured_at")
+    .select("id, email, name, company, score, tool_name, captured_at", {
+      count: "exact",
+    })
     .eq("run_id", id)
     .order("captured_at", { ascending: false })
-    .limit(50);
+    .limit(isFreePlan ? FREE_LEAD_VISIBLE_LIMIT : 50);
+
+  const { count: totalLeadCount } = await supabase
+    .from("leads")
+    .select("id", { count: "exact", head: true })
+    .eq("run_id", id);
 
   const leadList = (leads as LeadRow[] | null) ?? [];
+  const hiddenLeadCount =
+    isFreePlan && totalLeadCount !== null
+      ? Math.max(0, totalLeadCount - leadList.length)
+      : 0;
+
+  const { data: profile } = await supabase
+    .from("users_profile")
+    .select("default_cta_url")
+    .eq("id", user.id)
+    .maybeSingle();
+
   const domain = parseDomain(r.website_url);
   const company = r.icp_json?.company_name || r.company_name || domain || r.run_id;
   const isDeployed = r.status === "tools_deployed";
@@ -312,7 +335,7 @@ export default async function RunDetailPage({
               <IdeaPicker
                 runId={r.run_id}
                 ideas={ideas}
-                defaultCtaUrl={r.website_url || ""}
+                defaultCtaUrl={profile?.default_cta_url || r.website_url || ""}
               />
             </div>
           )}
@@ -364,8 +387,23 @@ export default async function RunDetailPage({
             <h2 className="text-lg font-semibold text-text-primary">
               Captured leads
             </h2>
-            <Badge color="grey">{leadList.length} total</Badge>
+            <Badge color="grey">{totalLeadCount ?? leadList.length} total</Badge>
           </div>
+
+          {hiddenLeadCount > 0 && (
+            <div className="mb-4 bg-primary-light border border-primary/20 rounded-md px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[13px] text-primary-dark leading-relaxed">
+                <strong>{hiddenLeadCount} more lead{hiddenLeadCount === 1 ? "" : "s"} hidden.</strong>{" "}
+                The free plan shows the 5 most recent. Upgrade to see and export all captured leads.
+              </p>
+              <Link
+                href="/pricing"
+                className="text-[13px] font-medium text-primary hover:text-primary-dark shrink-0"
+              >
+                See pricing →
+              </Link>
+            </div>
+          )}
 
           {leadList.length === 0 ? (
             <div className="bg-bg border border-border rounded-xl p-8 text-center text-sm text-text-secondary">

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RunCard, type RunRow } from "@/components/dashboard/RunCard";
+import { DefaultCtaCard } from "@/components/dashboard/DefaultCtaCard";
 import { countFreeRunsUsed, FREE_PLAN_RUN_LIMIT } from "@/lib/quota";
 
 export default async function DashboardPage() {
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("users_profile")
-    .select("full_name")
+    .select("full_name, default_cta_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -92,7 +93,7 @@ export default async function DashboardPage() {
           )}
         </header>
 
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <StatCard
             label="Tools generated"
             value={totalTools}
@@ -111,6 +112,10 @@ export default async function DashboardPage() {
             sub="tools live right now"
             icon={<Globe size={20} className="text-primary" />}
           />
+        </section>
+
+        <section className="mb-10">
+          <DefaultCtaCard initial={profile?.default_cta_url ?? ""} />
         </section>
 
         <section>

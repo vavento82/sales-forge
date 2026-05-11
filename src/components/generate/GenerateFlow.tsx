@@ -80,8 +80,27 @@ export function GenerateFlow() {
   const [ideas, setIdeas] = useState<Idea[] | null>(null);
   const [toolUrl, setToolUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [profileCta, setProfileCta] = useState<string>("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load the user's saved default CTA once on mount so the picker can pre-fill
+  // with it (overrides the entered website URL when set).
+  useEffect(() => {
+    const supabase = createClient();
+    (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("users_profile")
+        .select("default_cta_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profile?.default_cta_url) setProfileCta(profile.default_cta_url);
+    })();
+  }, []);
 
   const isPolling = runState === "running_ideas" || runState === "building";
   const cycleMessages =
@@ -259,7 +278,7 @@ export function GenerateFlow() {
           ideas={ideas}
           toolUrl={toolUrl}
           errorMsg={errorMsg}
-          defaultCtaUrl={url}
+          defaultCtaUrl={profileCta || url}
           onBuildStarted={() => {
             setRunState("building");
             setStatusIdx(0);

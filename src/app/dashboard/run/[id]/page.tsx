@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Download,
   ExternalLink,
   Globe,
   BrainCircuit,
@@ -383,11 +384,22 @@ export default async function RunDetailPage({
 
         {/* LEADS */}
         <section className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-text-primary">
-              Captured leads
-            </h2>
-            <Badge color="grey">{totalLeadCount ?? leadList.length} total</Badge>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold text-text-primary">
+                Captured leads
+              </h2>
+              <Badge color="grey">{totalLeadCount ?? leadList.length} total</Badge>
+            </div>
+            {(totalLeadCount ?? leadList.length) > 0 && (
+              <a
+                href={`/api/leads/export?run_id=${encodeURIComponent(r.run_id)}`}
+                className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:text-primary-dark border border-border hover:border-primary rounded-md px-3 py-1.5 transition"
+                download
+              >
+                <Download size={14} /> Download CSV
+              </a>
+            )}
           </div>
 
           {hiddenLeadCount > 0 && (

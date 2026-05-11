@@ -39,10 +39,23 @@ const BUILD_STATUS_MESSAGES = [
   "Deploying to a live URL...",
 ];
 
+// Prepend https:// when the user types just a domain so we can use the
+// standard URL parser. Doesn't touch existing http(s) inputs.
+function normalizeUrl(raw: string): string {
+  const s = raw.trim();
+  if (!s) return s;
+  if (/^https?:\/\//i.test(s)) return s;
+  return "https://" + s.replace(/^\/+/, "");
+}
+
+// Accepts domains with or without scheme / www, as long as there's at least
+// one dot in the hostname and a recognisable TLD. We don't try to be a strict
+// validator — Stage 1 of the pipeline (the scrape) will surface real failures.
 function isValidUrl(url: string) {
   try {
-    const u = new URL(url);
-    return u.protocol === "https:" || u.protocol === "http:";
+    const u = new URL(normalizeUrl(url));
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    return /\.[a-z]{2,}$/i.test(u.hostname);
   } catch {
     return false;
   }
@@ -123,7 +136,7 @@ export function GenerateFlow() {
 
   function handleNext() {
     if (!isValidUrl(url.trim())) {
-      setUrlError("Please enter a valid URL including https://");
+      setUrlError("Enter a valid website (e.g. example.com)");
       return;
     }
     setUrlError(null);
@@ -148,7 +161,7 @@ export function GenerateFlow() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          website_url: url.trim(),
+          website_url: normalizeUrl(url),
           tools_count: 1,
           plan: "free",
           buyer_title: buyerTitle.trim(),
@@ -327,8 +340,9 @@ function Step1({
       <div className="bg-bg border border-border rounded-xl p-5">
         <Input
           label="Website to analyse"
-          type="url"
-          placeholder="https://thecompany.com"
+          type="text"
+          inputMode="url"
+          placeholder="example.com"
           autoComplete="url"
           autoFocus
           value={url}
@@ -339,7 +353,8 @@ function Step1({
           error={urlError}
         />
         <p className="mt-1.5 text-[13px] text-text-secondary">
-          Enter the URL of the company you want to generate a tool for.
+          Domain only is fine (e.g. <code>example.com</code> or{" "}
+          <code>www.example.com</code>) — we&apos;ll add <code>https://</code> for you.
         </p>
 
         <div className="mt-7">

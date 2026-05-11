@@ -70,10 +70,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const websiteUrl = (body.website_url || "").trim();
-  if (!websiteUrl || !/^https?:\/\/.+\..+/.test(websiteUrl)) {
+  // Accept scheme-less domains too — prepend https:// if missing so the
+  // downstream scraper always gets a fully-qualified URL.
+  let websiteUrl = (body.website_url || "").trim();
+  if (websiteUrl && !/^https?:\/\//i.test(websiteUrl)) {
+    websiteUrl = "https://" + websiteUrl.replace(/^\/+/, "");
+  }
+  if (!websiteUrl || !/^https?:\/\/[^\s.]+\.[^\s]+/.test(websiteUrl)) {
     return NextResponse.json(
-      { error: "Please enter a valid website URL including https://" },
+      { error: "Please enter a valid website (e.g. example.com)" },
       { status: 400 }
     );
   }

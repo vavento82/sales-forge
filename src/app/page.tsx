@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Script from "next/script";
 import {
   Link as LinkIcon,
   Sparkles,
@@ -15,6 +16,15 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { DashboardMockup } from "@/components/marketing/DashboardMockup";
+
+// Wistia player HTML. Lives in dangerouslySetInnerHTML so we can drop in the
+// exact <wistia-player> custom element + its placeholder <style> without
+// fighting TS over the unknown JSX tag. The two JS files are loaded via
+// next/script below so Next.js handles their lifecycle properly.
+const WISTIA_EMBED_HTML = `
+<style>wistia-player[media-id='80ulmk80b2']:not(:defined) { background: center / contain no-repeat url('https://fast.wistia.com/embed/medias/80ulmk80b2/swatch'); display: block; filter: blur(5px); padding-top:56.25%; }</style>
+<wistia-player media-id="80ulmk80b2" aspect="1.7777777777777777"></wistia-player>
+`;
 
 export default function HomePage() {
   return (
@@ -48,7 +58,18 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="mt-16 max-w-[900px] mx-auto rounded-2xl overflow-hidden border border-border shadow-lg [transform:perspective(1200px)_rotateX(2deg)]">
+        <Script src="https://fast.wistia.com/player.js" strategy="afterInteractive" />
+        <Script
+          src="https://fast.wistia.com/embed/80ulmk80b2.js"
+          type="module"
+          strategy="afterInteractive"
+        />
+        <div
+          className="mt-12 max-w-[760px] mx-auto rounded-2xl overflow-hidden border border-border shadow-lg"
+          dangerouslySetInnerHTML={{ __html: WISTIA_EMBED_HTML }}
+        />
+
+        <div className="mt-12 max-w-[900px] mx-auto rounded-2xl overflow-hidden border border-border shadow-lg [transform:perspective(1200px)_rotateX(2deg)]">
           <DashboardMockup />
         </div>
       </section>

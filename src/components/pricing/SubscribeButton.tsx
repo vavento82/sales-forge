@@ -32,9 +32,11 @@ export function SubscribeButton({
       const payload = (await res.json().catch(() => ({}))) as {
         url?: string;
         error?: string;
+        diagnostic?: string;
       };
       if (!res.ok || !payload.url) {
-        toast.error(payload.error || "Could not start checkout. Try again.");
+        const base = payload.error || "Could not start checkout. Try again.";
+        toast.error(payload.diagnostic ? `${base} [${payload.diagnostic}]` : base);
         setLoading(false);
         return;
       }

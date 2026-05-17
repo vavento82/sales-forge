@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe } from "@/lib/stripe/server";
+import { getStripe, stripeKeyDiagnostic } from "@/lib/stripe/server";
 import { TIER_BY_ID, type PricingTierId } from "@/lib/pricing/tiers";
 
 export const runtime = "nodejs";
@@ -77,9 +77,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("[stripe/checkout] failed:", msg);
+    const diag = stripeKeyDiagnostic();
+    console.error("[stripe/checkout] failed:", msg, "|", diag);
     return NextResponse.json(
-      { error: `Checkout failed: ${msg}` },
+      { error: `Checkout failed: ${msg}`, diagnostic: diag },
       { status: 500 }
     );
   }

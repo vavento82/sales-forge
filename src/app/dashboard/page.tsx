@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { RunCard, type RunRow } from "@/components/dashboard/RunCard";
 import { DefaultCtaCard } from "@/components/dashboard/DefaultCtaCard";
-import { countFreeRunsUsed, FREE_PLAN_RUN_LIMIT } from "@/lib/quota";
+import { getQuota } from "@/lib/quota";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -61,8 +61,8 @@ export default async function DashboardPage() {
     .trim()
     .split(/\s+/)[0];
 
-  const freeRunsUsed = await countFreeRunsUsed(supabase, user.id);
-  const atLimit = freeRunsUsed >= FREE_PLAN_RUN_LIMIT;
+  const quota = await getQuota(supabase, user.id);
+  const atLimit = !quota.allowed;
 
   return (
     <DashboardShell user={user}>

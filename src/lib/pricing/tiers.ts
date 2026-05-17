@@ -24,6 +24,10 @@ export interface PricingTier {
   highlight?: boolean;
   /** Paid + Stripe not wired → button disabled. */
   comingSoon?: boolean;
+  /** Stripe test-mode recurring Price ID. null for free + agency. */
+  stripePriceId: string | null;
+  /** Monthly run allowance enforced in /api/generate. null = unlimited/custom. */
+  runsPerMonth: number | null;
 }
 
 export const PRICING_TIERS: PricingTier[] = [
@@ -43,6 +47,8 @@ export const PRICING_TIERS: PricingTier[] = [
     ],
     cta: "Start free →",
     href: "/signup",
+    stripePriceId: null,
+    runsPerMonth: 1,
   },
   {
     id: "starter",
@@ -59,9 +65,10 @@ export const PRICING_TIERS: PricingTier[] = [
       "30-day tool retention",
       "CSV export of leads",
     ],
-    cta: "Coming soon",
-    comingSoon: true,
+    cta: "Subscribe →",
     highlight: true,
+    stripePriceId: "price_1TY8EKB3Dn37v4ibcniuCwYO",
+    runsPerMonth: 5,
   },
   {
     id: "pro",
@@ -78,8 +85,9 @@ export const PRICING_TIERS: PricingTier[] = [
       "Webhook on each new lead",
       "Email + Slack delivery",
     ],
-    cta: "Coming soon",
-    comingSoon: true,
+    cta: "Subscribe →",
+    stripePriceId: "price_1TY8F5B3Dn37v4ibEwDZQDSL",
+    runsPerMonth: 15,
   },
   {
     id: "agency",
@@ -97,8 +105,22 @@ export const PRICING_TIERS: PricingTier[] = [
     ],
     cta: "Talk to us →",
     href: "mailto:hello@sassyforge.app",
+    stripePriceId: null,
+    runsPerMonth: null,
   },
 ];
+
+/** Map a Stripe Price ID back to our plan id. Used by the webhook. */
+export function planForPriceId(priceId: string): PricingTierId | null {
+  const t = PRICING_TIERS.find((x) => x.stripePriceId === priceId);
+  return t ? t.id : null;
+}
+
+/** Monthly run allowance for a plan id (defaults to free's allowance). */
+export function runsPerMonthForPlan(plan: string): number {
+  const t = PRICING_TIERS.find((x) => x.id === plan);
+  return t?.runsPerMonth ?? 1;
+}
 
 /** Convenience lookup by id. */
 export const TIER_BY_ID: Record<PricingTierId, PricingTier> = Object.fromEntries(

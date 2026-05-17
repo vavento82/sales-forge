@@ -1,6 +1,6 @@
 import { NextResponse, after, type NextRequest } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { countFreeRunsUsed, FREE_PLAN_RUN_LIMIT } from "@/lib/quota";
+import { getQuota } from "@/lib/quota";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,24 +50,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // Enforce free-plan quota — block before any DB write or pipeline fire.
-  // Only counts runs where is_free=true and status!='error', so failed
-  // generations don't count against the cap.
-  const plan = body.plan ?? "free";
-  if (plan === "free") {
-    const used = await countFreeRunsUsed(supabase, user.id);
-    if (used >= FREE_PLAN_RUN_LIMIT) {
-      return NextResponse.json(
-        {
-          error:
-            "You've used your free generation. Paid plans are coming soon — sign up for early access.",
-          upgrade_required: true,
-          used,
-          limit: FREE_PLAN_RUN_LIMIT,
-        },
-        { status: 402 }
-      );
-    }
+  // Server-authoritative quota. Plan is read from users_profile (set by the
+  // Stripe webhook), NOT from body.plan — the request body is spoofable.
+  // Counts non-error runs in the current period (calendar month for free,
+  // Stripe billing window for paid).
+  const quota = await getQuota(supabase, user.id);
+  const plan = quota.plan;
+  if (!quota.allowed) {
+    const msg =
+      plan === "free"
+        ? `You've used your ${quota.limit} free run this month. Upgrade for more.`
+        : `You've used all ${quota.limit} runs on your ${plan} plan this period.`;
+    return NextResponse.json(
+      {
+        error: msg,
+        upgrade_required: true,
+        plan,
+        used: quota.used,
+        limit: quota.limit,
+      },
+      { status: 402 }
+    );
   }
 
   // Accept scheme-less domains too — prepend https:// if missing so the

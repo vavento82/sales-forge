@@ -4,6 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/Button";
 import { PRICING_TIERS } from "@/lib/pricing/tiers";
+import { SubscribeButton } from "@/components/pricing/SubscribeButton";
 
 const tiers = PRICING_TIERS;
 
@@ -75,6 +76,9 @@ export default function PricingPage() {
                   <Button disabled className="w-full">
                     {t.cta}
                   </Button>
+                ) : t.stripePriceId &&
+                  (t.id === "starter" || t.id === "pro") ? (
+                  <SubscribeButton plan={t.id} label={t.cta} />
                 ) : (
                   <Link href={t.href!}>
                     <Button className="w-full">{t.cta}</Button>

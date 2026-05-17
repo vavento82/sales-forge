@@ -3,82 +3,9 @@ import { Check } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/Button";
+import { PRICING_TIERS } from "@/lib/pricing/tiers";
 
-interface Tier {
-  name: string;
-  price: string;
-  unit: string;
-  description: string;
-  features: string[];
-  cta: string;
-  href?: string;
-  highlight?: boolean;
-  comingSoon?: boolean;
-}
-
-const tiers: Tier[] = [
-  {
-    name: "Free",
-    price: "$0",
-    unit: "forever",
-    description: "Try it out — generate 1 tool from any website.",
-    features: [
-      "1 tool per signup",
-      "ICP analysis from URL + Google",
-      "Live tool deployed to Tiiny Host",
-      "Lead capture into Supabase",
-      "Standard 7-day tool retention",
-    ],
-    cta: "Start free →",
-    href: "/signup",
-  },
-  {
-    name: "Starter",
-    price: "$29",
-    unit: "per website",
-    description: "One-time payment per company URL — get all 6 ideas + 2 tools built.",
-    features: [
-      "All 6 ideas generated",
-      "2 tools built and deployed",
-      "Full GTM playbook",
-      "30-day tool retention",
-      "CSV export of leads",
-    ],
-    cta: "Coming soon",
-    comingSoon: true,
-    highlight: true,
-  },
-  {
-    name: "Pro",
-    price: "$79",
-    unit: "per website",
-    description: "Everything in Starter, plus all 6 tools deployed live.",
-    features: [
-      "All 6 tools built and deployed",
-      "Custom domain support",
-      "90-day tool retention",
-      "Webhook on each new lead",
-      "Email + Slack delivery",
-    ],
-    cta: "Coming soon",
-    comingSoon: true,
-  },
-  {
-    name: "Agency",
-    price: "Custom",
-    unit: "talk to us",
-    description: "White-label, bulk runs, dedicated support.",
-    features: [
-      "Bulk processing across many websites",
-      "White-label deployed tools",
-      "API access",
-      "Dedicated Slack channel",
-      "Priority queue",
-    ],
-    cta: "Coming soon",
-    comingSoon: true,
-  },
-];
+const tiers = PRICING_TIERS;
 
 export default function PricingPage() {
   return (
@@ -90,13 +17,13 @@ export default function PricingPage() {
             Pricing
           </span>
           <h1 className="mt-3 text-[42px] sm:text-[48px] font-bold leading-tight text-text-primary">
-            Simple, one-time pricing
+            Simple monthly pricing
           </h1>
           <p className="mt-4 text-lg text-text-secondary leading-relaxed">
-            Pay once per website. No subscriptions. No surprises.
+            Pick a monthly plan that matches your outreach volume. Cancel anytime.
           </p>
           <p className="mt-2 text-[13px] text-text-secondary">
-            Payments coming soon — sign up free to get started
+            Paid plans are coming soon — start on the free plan today
           </p>
         </div>
 
@@ -120,9 +47,11 @@ export default function PricingPage() {
               </h2>
               <div className="mt-3 flex items-baseline gap-1.5">
                 <span className="text-[36px] font-bold text-text-primary leading-none">
-                  {t.price}
+                  {t.priceLabel}
                 </span>
-                <span className="text-sm text-text-secondary">/ {t.unit}</span>
+                <span className="text-sm text-text-secondary">
+                  {t.unit.startsWith("/") ? t.unit : ` ${t.unit}`}
+                </span>
               </div>
               <p className="mt-3 text-sm text-text-secondary leading-relaxed">
                 {t.description}

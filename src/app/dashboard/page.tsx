@@ -159,9 +159,9 @@ export default async function DashboardPage() {
           }}
         >
           <div>
-            <p className="text-xl font-semibold">More tools with paid plans</p>
+            <p className="text-xl font-semibold">More runs with a paid plan</p>
             <p className="text-sm text-white/70 leading-relaxed mt-1.5 max-w-[560px]">
-              Generate up to 8 custom tools per website. Paid plans launching soon — sign up to get early access.
+              Starter gets you 5 runs a month with 2 tools per run. Pro unlocks 15 runs and all 6 tools live. Monthly plans coming soon — sign up to get early access.
             </p>
           </div>
           <Link href="/pricing" className="shrink-0">

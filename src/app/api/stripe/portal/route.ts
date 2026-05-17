@@ -28,10 +28,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const stripe = getStripe();
-  const session = await stripe.billingPortal.sessions.create({
-    customer: customerId,
-    return_url: `${request.nextUrl.origin}/settings`,
-  });
-  return NextResponse.json({ url: session.url });
+  try {
+    const stripe = getStripe();
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${request.nextUrl.origin}/settings`,
+    });
+    return NextResponse.json({ url: session.url });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[stripe/portal] failed:", msg);
+    return NextResponse.json(
+      { error: `Billing portal failed: ${msg}` },
+      { status: 500 }
+    );
+  }
 }

@@ -5,6 +5,7 @@ import { TIER_BY_ID, type PricingTierId } from "@/lib/pricing/tiers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();

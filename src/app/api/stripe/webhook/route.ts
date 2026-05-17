@@ -6,6 +6,7 @@ import { planForPriceId } from "@/lib/pricing/tiers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // Map a subscription object → the columns we persist on users_profile.
 function subToProfilePatch(sub: Stripe.Subscription) {
